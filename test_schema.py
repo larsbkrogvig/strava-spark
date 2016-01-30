@@ -1,4 +1,5 @@
 from pyspark.sql import SQLContext
+
 sqlContext = SQLContext(sc)
 
 df = sqlContext.read.format('com.databricks.spark.xml') \
@@ -6,3 +7,4 @@ df = sqlContext.read.format('com.databricks.spark.xml') \
         .load('activity.xml')
 
 df.printSchema()
+
