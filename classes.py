@@ -2,9 +2,11 @@ import os
 import re
 import glob
 import pickle
+import subprocess
 
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, DataFrame
+from pyspark.sql.types import StringType
 from pyspark.sql.functions import lit
 
 class StravaLoader(object):
@@ -75,14 +77,41 @@ class StravaLoader(object):
             ]
 
         else:
-            raise Warning(('Automatic directory/athlete detection not supported for '
-                           'data source %s. Using: "akrogvig", "lkrogvig", "brustad"') \
-                           % self.data_source)
+            print ('Warning: Automatic directory/athlete detection not supported for '
+                   'data source %s. Using: "akrogvig", "lkrogvig", "brustad"') \
+                   % self.data_source
 
             self.athletes = ['akrogvig', 'lkrogvig', 'brustad']
 
         pass
 
+    def _activities_exist(self, athlete, activity_type):
+        '''
+        Checks if there exists activities of type <activity_type> for athlete <athlete>, 
+        returns a boolean value
+        '''
+
+        # Check local directory with glob
+        if self.data_source == 'local':
+            return glob.glob(self.path+'%s/*%s.gpx' % (athlete, activity_type))
+
+        # Check s3 bucket with aws cli
+        elif self.data_source == 's3':
+
+            # List entire athlete subdirectory
+            ls = subprocess.Popen([
+                'aws',
+                's3', 
+                'ls',
+                's3://larsbk/strava-activities/%s/' % athlete
+                ],
+                stdout=subprocess.PIPE).communicate()[0].split('\n')
+
+            # Look for activity with correct type
+            for lsline in ls:
+                if re.match('.*%s.gpx' % activity_type, lsline):
+                    return True
+            return False
 
     def _load_dataset(self):
         '''
@@ -102,12 +131,13 @@ class StravaLoader(object):
         for athlete in self.athletes:
             for activity_type in self.activity_types:
         
-                # Check that there are files of that type here (or else .load fails)
-                if glob.glob(self.path+'%s/*%s.gpx' % (athlete, activity_type)):
+                # Check that there are files of that type (or else .load fails)
+                if self._activities_exist(athlete, activity_type):
 
                     # Read data
+                    #treatEmptyValuesAsNulls=True
                     dfadd = self.sqlContext.read.format('com.databricks.spark.xml') \
-                                    .options(rowTag='trkpt') \
+                                    .options(rowTag='trkpt', failFast=False) \
                                     .schema(self.schema) \
                                     .load(self.path+'%s/*%s.gpx' % (athlete, activity_type))
                 
@@ -115,6 +145,23 @@ class StravaLoader(object):
                                  .withColumn('activity_type', lit(activity_type))
                 
                     self.df = self.df.unionAll(dfadd)
+
+        pass
+
+    def derive_schema(self):
+        '''
+        Loads all data in self.path and derives the schema, saves with pickle to "schema.p"
+        '''
+
+        df = self.sqlContext.read.format('com.databricks.spark.xml') \
+                    .options(rowTag='trkpt') \
+                    .load(self.path)
+
+        df = df.withColumn('athlete',lit(None).cast(StringType())) \
+               .withColumn('activity_type',lit(None).cast(StringType()))
+
+        df.printSchema()
+        pickle.dump(df.schema, open("schema.p", "wb"))
 
         pass
 

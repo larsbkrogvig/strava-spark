@@ -214,7 +214,7 @@ sg18
 S'athlete'
 p83
 sg20
-I00
+I01
 sbag0
 (g8
 g2
@@ -229,7 +229,7 @@ sg18
 S'activity_type'
 p88
 sg20
-I00
+I01
 sbasg63
 (lp89
 g19
