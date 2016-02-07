@@ -2,7 +2,7 @@ from classes import StravaLoader
 
 def main():
 
-    df = StravaLoader('local').get_dataset()
+    df = StravaLoader('s3').get_dataset()
 
     df.show()
     df.printSchema()
