@@ -13,28 +13,41 @@ class StravaLoader(object):
                  data_source='local', 
                  activity_directory='strava-activities-subset',
                  s3bucket='larsbk',
-                 conf=(SparkConf().setAppName('Strava analysis')),
                  athletes=None,
                  activity_types=[
                     'Ride',
                     'Run',
                     'NordicSki'
-                    ]
+                 ],
+                 sc=None,
+                 sqlContext=None,
+                 conf=(SparkConf().setAppName('Strava analysis'))
                  ):
 
         '''
         Initialize Strava Analysis object
         '''
 
-        if data_source not in ['local', 's3']:
-            raise Exception(('Unrecognized data source %s. '
-                             'Supported sources: "local", "s3".') \
-                             % data_source)
-
         data_root_path = {
-            's3': 's3n://%s/%s/' % (s3bucket, activity_directory), 
-            'local': './%s/' % activity_directory
-            }
+                's3': 's3n://%s/%s/' % (s3bucket, activity_directory), 
+                'local': './%s/' % activity_directory
+        }
+
+        # Check if valid data source
+        if data_source not in data_root_path.keys():
+            raise Exception(('Unrecognized data source %s. '
+                             'Supported sources: "%s".') \
+                             % '", "'.join(data_root_path.keys()))
+
+        # Spark contexts
+        if sc != None and sqlContext != None:
+            print 'Info: Using supplied SparkContext and SQLContext'
+            self.sc = sc
+            self.sqlContext = sqlContext
+        else:
+            print 'Info: Intitializing SparkContext and sqlContext from (default) conf'
+            self.sc = SparkContext(conf=conf)
+            self.sqlContext = SQLContext(self.sc)
 
         # Input attributes
         self.data_source = data_source
@@ -42,11 +55,8 @@ class StravaLoader(object):
         self.athletes = athletes
         self.activity_types = activity_types
 
-        # Spark attributes
-        self.sc = SparkContext(conf=conf)
-        self.sqlContext = SQLContext(self.sc)
+        # Dataframe
         self.schema = pickle.load(open('./schema.p', 'rb'))
-
         self.df = None
 
         pass
@@ -62,7 +72,7 @@ class StravaLoader(object):
             self.athletes = [
                 directory for directory in os.listdir(self.path)
                 if re.match('^[\w-]+$', directory)
-                ]
+            ]
 
         else:
             raise Warning(('Automatic directory/athlete detection not supported for '
@@ -87,7 +97,7 @@ class StravaLoader(object):
         self.df = self.sqlContext.createDataFrame(
             self.sc.emptyRDD(),
             self.schema
-            )
+        )
 
         for athlete in self.athletes:
             for activity_type in self.activity_types:
