@@ -3,6 +3,7 @@ import re
 import glob
 import pickle
 import subprocess
+import boto3
 
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, DataFrame
@@ -26,42 +27,68 @@ class StravaLoader(object):
                  conf=(SparkConf().setAppName('Strava analysis'))
                  ):
 
-        '''
-        Initialize Strava Analysis object
-        '''
+        ''' Initialize Strava Analysis object'''
+
+
+        # INPUT PARAMETERS
+
+        self.athletes = athletes # Athletes to analyze (optional)
+        self.activity_types = activity_types # Activity_types to consider (default)
+
+
+        # CONFIGURE SPARK
+
+        if sc != None and sqlContext != None: # Both contexts were supplied by user
+            print 'Info: Using supplied SparkContext and SQLContext'
+            self.sc = sc
+            self.sqlContext = sqlContext
+
+        else: # Initialize new contexts
+            print 'Info: Intitializing SparkContext and sqlContext from (default) conf'
+            self.sc = SparkContext(conf=conf)
+            self.sqlContext = SQLContext(self.sc)
+
+        self.schema = pickle.load(open('./schema.p', 'rb')) # The pre-defined schema
+        self.df = None # Empry DataFrame to be populated later
+
+
+        # CONFIGURE DATA SOURCE
 
         data_root_path = {
                 's3': 's3n://%s/%s/' % (s3bucket, activity_directory), 
                 'local': './%s/' % activity_directory
         }
-
-        # Check if valid data source
-        if data_source not in data_root_path.keys():
+        
+        if data_source not in data_root_path.keys(): # Check if data source is valid 
             raise Exception(('Unrecognized data source %s. '
                              'Supported sources: "%s".') \
                              % '", "'.join(data_root_path.keys()))
+        
+        self.data_source = data_source # This is a valid data source
+        self.path = data_root_path[data_source] # This is the path to the data
 
-        # Spark contexts
-        if sc != None and sqlContext != None:
-            print 'Info: Using supplied SparkContext and SQLContext'
-            self.sc = sc
-            self.sqlContext = sqlContext
-        else:
-            print 'Info: Intitializing SparkContext and sqlContext from (default) conf'
-            self.sc = SparkContext(conf=conf)
-            self.sqlContext = SQLContext(self.sc)
 
-        # Input attributes
-        self.data_source = data_source
-        self.path = data_root_path[data_source]
-        self.athletes = athletes
-        self.activity_types = activity_types
+        # (S3 SPECIFIC STUFF)
 
-        # Dataframe
-        self.schema = pickle.load(open('./schema.p', 'rb'))
-        self.df = None
+        if data_source == 's3':
+
+            # Get a list of files in he activity_directory
+            bucket = boto3.resource('s3').Bucket(s3bucket) 
+            objects = bucket.objects.filter(Prefix='%s' % activity_directory)
+            files = [obj.key for obj in objects] 
+
+            # Make set of observed combinations of athlete and activity_type
+            athlete_and_type = set([]) # Empty set to populate
+            fpattern = '\/([\w]+)\/(?:[\w-]+)-([\w]+)\.gpx' # File name pattern
+            for fname in files:
+                match = re.match(activity_directory+fpattern, fname)
+                if match:
+                    athlete_and_type.add((match.group(1), match.group(2)))
+
+            self.s3_athlete_and_type = athlete_and_type # Save set for later use
 
         pass
+
 
     def _get_athlete_directories(self):
         '''
@@ -77,13 +104,14 @@ class StravaLoader(object):
             ]
 
         else:
-            print ('Warning: Automatic directory/athlete detection not supported for '
+            print ('Warning: Automatic directory/athlete detection not yet supported for '
                    'data source %s. Using: "akrogvig", "lkrogvig", "brustad"') \
                    % self.data_source
 
             self.athletes = ['akrogvig', 'lkrogvig', 'brustad']
 
         pass
+
 
     def _activities_exist(self, athlete, activity_type):
         '''
@@ -95,23 +123,9 @@ class StravaLoader(object):
         if self.data_source == 'local':
             return glob.glob(self.path+'%s/*%s.gpx' % (athlete, activity_type))
 
-        # Check s3 bucket with aws cli
+        # Check if combination exists by using previously compiled sets
         elif self.data_source == 's3':
-
-            # List entire athlete subdirectory
-            ls = subprocess.Popen([
-                'aws',
-                's3', 
-                'ls',
-                's3://larsbk/strava-activities/%s/' % athlete
-                ],
-                stdout=subprocess.PIPE).communicate()[0].split('\n')
-
-            # Look for activity with correct type
-            for lsline in ls:
-                if re.match('.*%s.gpx' % activity_type, lsline):
-                    return True
-            return False
+            return ((athlete, activity_type) in self.s3_athlete_and_type)
 
     def _load_dataset(self):
         '''
@@ -135,7 +149,6 @@ class StravaLoader(object):
                 if self._activities_exist(athlete, activity_type):
 
                     # Read data
-                    #treatEmptyValuesAsNulls=True
                     dfadd = self.sqlContext.read.format('com.databricks.spark.xml') \
                                     .options(rowTag='trkpt', failFast=False) \
                                     .schema(self.schema) \
@@ -147,6 +160,7 @@ class StravaLoader(object):
                     self.df = self.df.unionAll(dfadd)
 
         pass
+
 
     def derive_schema(self):
         '''
@@ -164,6 +178,7 @@ class StravaLoader(object):
         pickle.dump(df.schema, open("schema.p", "wb"))
 
         pass
+
 
     def get_dataset(self):
         '''
