@@ -2,11 +2,10 @@ import os
 import re
 import glob
 import pickle
-import subprocess
 import boto3
 
 from pyspark import SparkConf, SparkContext
-from pyspark.sql import SQLContext, DataFrame
+from pyspark.sql import HiveContext, DataFrame
 from pyspark.sql.types import StringType
 from pyspark.sql.functions import lit
 
@@ -23,7 +22,7 @@ class StravaLoader(object):
                     'NordicSki'
                  ],
                  sc=None,
-                 sqlContext=None,
+                 hiveContext=None,
                  conf=(SparkConf().setAppName('Strava analysis'))
                  ):
 
@@ -38,15 +37,15 @@ class StravaLoader(object):
 
         # CONFIGURE SPARK
 
-        if sc != None and sqlContext != None: # Both contexts were supplied by user
-            print 'Info: Using supplied SparkContext and SQLContext'
+        if sc != None and hiveContext != None: # Both contexts were supplied by user
+            print 'Info: Using supplied SparkContext and HiveContext'
             self.sc = sc
-            self.sqlContext = sqlContext
+            self.hiveContext = hiveContext
 
         else: # Initialize new contexts
-            print 'Info: Intitializing SparkContext and sqlContext from (default) conf'
+            print 'Info: Intitializing SparkContext and hiveContext from (default) conf'
             self.sc = SparkContext(conf=conf)
-            self.sqlContext = SQLContext(self.sc)
+            self.hiveContext = HiveContext(self.sc)
 
         self.schema = pickle.load(open('./schema.p', 'rb')) # The pre-defined schema
         self.df = None # Empry DataFrame to be populated later
@@ -137,7 +136,7 @@ class StravaLoader(object):
             self._get_athlete_directories()
 
         # Initialize empty dataset
-        self.df = self.sqlContext.createDataFrame(
+        self.df = self.hiveContext.createDataFrame(
             self.sc.emptyRDD(),
             self.schema
         )
@@ -149,7 +148,7 @@ class StravaLoader(object):
                 if self._activities_exist(athlete, activity_type):
 
                     # Read data
-                    dfadd = self.sqlContext.read.format('com.databricks.spark.xml') \
+                    dfadd = self.hiveContext.read.format('com.databricks.spark.xml') \
                                     .options(rowTag='trkpt', failFast=False) \
                                     .schema(self.schema) \
                                     .load(self.path+'%s/*%s.gpx' % (athlete, activity_type))
@@ -167,7 +166,7 @@ class StravaLoader(object):
         Loads all data in self.path and derives the schema, saves with pickle to "schema.p"
         '''
 
-        df = self.sqlContext.read.format('com.databricks.spark.xml') \
+        df = self.hiveContext.read.format('com.databricks.spark.xml') \
                     .options(rowTag='trkpt') \
                     .load(self.path)
 
