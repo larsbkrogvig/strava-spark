@@ -5,10 +5,11 @@ cd /Users/LarsBK/Documents/GitHub/strava+spark
 export SPARK_HOME=/Users/LarsBK/Apache/spark-1.6.0
 
 #local
-$SPARK_HOME/bin/spark-submit --jars spark-xml_2.10-0.3.2-SNAPSHOT.jar test_schema.py
+$SPARK_HOME/bin/spark-submit --jars spark-xml_2.10-0.3.2-SNAPSHOT.jar analysis.py
+$SPARK_HOME/bin/pyspark --jars spark-xml_2.10-0.3.2-SNAPSHOT.jar
 
 # aws submit step
-aws emr add-steps --cluster-id j-xxxxxxxxxxxxx --steps Type=Spark,Name="Spark program",Args=[--jars,/home/hadoop/spark-xml_2.10-0.3.2-SNAPSHOT.jar,/home/hadoop/test_schema.py]
+aws emr add-steps --cluster-id j-xxxxxxxxxxxxx --steps Type=Spark,Name="Spark program",Args=[--jars,/home/hadoop/spark-xml_2.10-0.3.2-SNAPSHOT.jar,/home/hadoop/analysis.py]
 
 # Check progress
 aws emr list-steps --cluster-id j-xxxxxxxxxxxx --step-ids s-xxxxxxxxxx
