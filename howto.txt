@@ -1,15 +1,18 @@
 # pyspark
+ipython profile create pyspark
 
-cd /Users/LarsBK/Documents/GitHub/strava+spark
-
+export JAVA_HOME=$(/usr/libexec/java_home)
 export SPARK_HOME=/Users/LarsBK/Apache/spark-1.6.0
+export PYSPARK_SUBMIT_ARGS="--jars /Users/LarsBK/Documents/GitHub/strava+spark/spark-xml_2.10-0.3.2.jar"
+
+# Update ~/.ipython/profile_pyspark/startup/00-pyspark-setup.py with 00-pyspark-setup.py
 
 #local
-$SPARK_HOME/bin/spark-submit --jars spark-xml_2.10-0.3.2-SNAPSHOT.jar analysis.py
-$SPARK_HOME/bin/pyspark --jars spark-xml_2.10-0.3.2-SNAPSHOT.jar
+$SPARK_HOME/bin/spark-submit --jars spark-xml_2.10-0.3.2.jar analysis.py
+$SPARK_HOME/bin/pyspark --jars spark-xml_2.10-0.3.2.jar
 
 # aws submit step
-aws emr add-steps --cluster-id j-xxxxxxxxxxxxx --steps Type=Spark,Name="Spark program",Args=[--jars,/home/hadoop/spark-xml_2.10-0.3.2-SNAPSHOT.jar,/home/hadoop/analysis.py]
+aws emr add-steps --cluster-id j-xxxxxxxxxxxxx --steps Type=Spark,Name="Spark program",Args=[--jars,/home/hadoop/spark-xml_2.10-0.3.2.jar,/home/hadoop/analysis.py]
 
 # Check progress
 aws emr list-steps --cluster-id j-xxxxxxxxxxxx --step-ids s-xxxxxxxxxx
