@@ -149,7 +149,7 @@ class StravaLoader(object):
 
                     # Read data
                     dfadd = self.hiveContext.read.format('com.databricks.spark.xml') \
-                                    .options(rowTag='trkpt', failFast=False) \
+                                    .options(rowTag='trkpt', treatEmptyValuesAsNulls=True) \
                                     .schema(self.schema) \
                                     .load(self.path+'%s/*%s.gpx' % (athlete, activity_type))
                 
