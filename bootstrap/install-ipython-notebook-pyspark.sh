@@ -15,6 +15,7 @@ source venv/bin/activate
 pip install "ipython[notebook]"
 pip install requests numpy
 pip install matplotlib
+pip install boto3
 
 #Create profile 	
 ipython profile create default
