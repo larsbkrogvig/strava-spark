@@ -2,8 +2,12 @@
 import os
 import sys
 
-spark_home = '/usr/lib/spark/'
-os.environ["SPARK_HOME"] = spark_home # Is this necessary?
+
+
+print 'py SPARK_HOME = %s (before)' % os.environ.get('SPARK_HOME', 'None')
+spark_home = '/usr/lib/spark'
+os.environ['SPARK_HOME'] = spark_home # Is this necessary?
+print 'py SPARK_HOME = %s (after)' % os.environ.get('SPARK_HOME', 'None')
 
 pyspark_submit_args = '--jars /home/hadoop/spark-xml_2.10-0.3.2.jar'
 

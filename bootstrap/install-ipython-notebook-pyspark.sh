@@ -29,5 +29,8 @@ echo "c.NotebookApp.port = 8192" >>  /home/hadoop/.ipython/profile_default/ipyth
 # Place downloaded pyspark conifg in correct directory
 mv /home/hadoop/00-pyspark-setup-EMR.py /home/hadoop/.ipython/profile_default/startup/00-default-setup.py
 
+echo "sh SPARK_HOME = "$SPARK_HOME
+echo "sh PYSPARK_SUBMIT_ARGS = "$PYSPARK_SUBMIT_ARGS
+
 nohup ipython notebook --no-browser > /mnt/var/log/python_notebook.log &
 fi
