@@ -4,7 +4,8 @@ import sys
 
 spark_home = '/usr/lib/spark/' # SPARK_HOME not set on EMR
 
-pyspark_submit_args = os.environ.get("PYSPARK_SUBMIT_ARGS", "")
+pyspark_submit_args = '--jars /home/hadoop/spark-xml_2.10-0.3.2.jar'
+
 if not "pyspark-shell" in pyspark_submit_args: pyspark_submit_args += " pyspark-shell"
 os.environ["PYSPARK_SUBMIT_ARGS"] = pyspark_submit_args
 
