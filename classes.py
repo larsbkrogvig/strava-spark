@@ -23,7 +23,8 @@ class StravaLoader(object):
                  ],
                  sc=None,
                  hiveContext=None,
-                 conf=(SparkConf().setAppName('Strava analysis'))
+                 conf=(SparkConf().setAppName('Strava analysis')),
+                 filter_bug_inducing_rows=True
                  ):
 
         ''' Initialize Strava Analysis object'''
@@ -33,6 +34,7 @@ class StravaLoader(object):
 
         self.athletes = athletes # Athletes to analyze (optional)
         self.activity_types = activity_types # Activity_types to consider (default)
+        self.filter_bug_inducing_rows = filter_bug_inducing_rows
 
 
         # CONFIGURE SPARK
@@ -149,7 +151,7 @@ class StravaLoader(object):
 
                     # Read data
                     dfadd = self.hiveContext.read.format('com.databricks.spark.xml') \
-                                    .options(rowTag='trkpt', treatEmptyValuesAsNulls=True) \
+                                    .options(rowTag='trkpt', treatEmptyValuesAsNulls=False) \
                                     .schema(self.schema) \
                                     .load(self.path+'%s/*%s.gpx' % (athlete, activity_type))
                 
@@ -157,6 +159,9 @@ class StravaLoader(object):
                                  .withColumn('activity_type', lit(activity_type))
                 
                     self.df = self.df.unionAll(dfadd)
+
+        if self.filter_bug_inducing_rows:
+            self.df = self.df.filter(self.df['extensions.gpxtpx:TrackPointExtension.#VALUE'].isNull())
 
         pass
 
@@ -168,7 +173,7 @@ class StravaLoader(object):
 
         df = self.hiveContext.read.format('com.databricks.spark.xml') \
                     .options(rowTag='trkpt') \
-                    .load(self.path)
+                    .load(self.path+'*')
 
         df = df.withColumn('athlete',lit(None).cast(StringType())) \
                .withColumn('activity_type',lit(None).cast(StringType()))

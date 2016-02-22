@@ -1,6 +1,5 @@
 from pyspark.sql import Window
 from pyspark.sql.functions import lag, unix_timestamp
-
 from classes import StravaLoader
 
 def main():
@@ -10,13 +9,12 @@ def main():
 
     # Convert timestamp to seconds
     df = df.withColumn('unix_time', unix_timestamp(df['time'], "yyyy-MM-dd'T'HH:mm:ss'Z'"))
-
+    
     # Window for time difference
     window = Window.partitionBy('athlete', 'activity_type').orderBy('unix_time')
-
     df = df.withColumn('unix_time_prev', lag('unix_time', count=1).over(window))
     df = df.withColumn('unix_time_diff', df['unix_time'] - df['unix_time_prev'])
-
+    
     # Select prev time and alias fields
     df = df.select( 
         df['@lat'].alias('lat'), 
@@ -31,7 +29,7 @@ def main():
         df['athlete'].alias('athlete'), 
         df['activity_type'].alias('activity_type') 
     )
-
+    
     df.orderBy('unix_time_diff', ascending=False).withColumn('hrs', df['unix_time_diff']/(60*60)).show()
 
     pass
