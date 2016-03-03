@@ -1,8 +1,16 @@
+> Work in progress! 
+
+> The instructions in this readme are incomplete.
+
 # strava-spark
 Analyzing my Strava history with Spark
 
-## Usage
-How to use this thing. Run the code in a directory with the following subdirectory structure:
+## Prerequisites
+* Apache Spark
+* Strava activities stored locally or in an s3 bucket
+* Other bits and pieces (_TODO_)
+
+Activities are stored in the following structure
 * _strava-activities_
   * _athlete1_
     * <_.gpx-files_>
@@ -10,7 +18,7 @@ How to use this thing. Run the code in a directory with the following subdirecto
     * <_.gpx-files_>
   * ...
 
-The _.gpx_ files should follow this naming convention:
+The _.gpx_ files follow this naming convention:
 > [id]-[activity type].gpx
 
 Typical _activity types_ are:
@@ -27,5 +35,5 @@ df = StravaLoader().get_dataset()
 In a `pyspark` shell:
 ```
 from classes import StravaLoader
-df = StravaLoader(sc=sc, sqlContext=sqlContext).get_dataset()
+df = StravaLoader(sc=sc, hiveContext=sqlContext).get_dataset()
 ```
