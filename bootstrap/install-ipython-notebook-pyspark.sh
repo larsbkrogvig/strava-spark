@@ -13,7 +13,7 @@ source venv/bin/activate
 
 #Install ipython and dependency
 pip install "ipython[notebook]"
-pip install requests numpy
+pip install requests numpy pandas
 pip install matplotlib
 pip install boto3
 
