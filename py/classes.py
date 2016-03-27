@@ -73,16 +73,16 @@ class StravaLoader(object):
 
         if data_source == 's3':
 
-            # Get a list of files in he activity_directory
+            # Get a list of files in he activity_directorys
             bucket = boto3.resource('s3').Bucket(s3bucket) 
-            objects = bucket.objects.filter(Prefix='%s' % activity_directory)
+            objects = bucket.objects.filter(Prefix='%s/gpx/' % activity_directory)
             files = [obj.key for obj in objects] 
 
             # Make set of observed combinations of athlete and activity_type
             athlete_and_type = set([]) # Empty set to populate
             fpattern = '\/([\w]+)\/(?:[\w-]+)-([\w]+)\.gpx' # File name pattern
             for fname in files:
-                match = re.match(activity_directory+fpattern, fname)
+                match = re.match(activity_directory+'/gpx'+fpattern, fname)
                 if match:
                     athlete_and_type.add((match.group(1), match.group(2)))
 
@@ -100,7 +100,7 @@ class StravaLoader(object):
         if self.data_source in ['local']:
 
             self.athletes = [
-                directory for directory in os.listdir(self.path)
+                directory for directory in os.listdir(self.path+'gpx/')
                 if re.match('^[\w-]+$', directory)
             ]
 
@@ -122,7 +122,7 @@ class StravaLoader(object):
 
         # Check local directory with glob
         if self.data_source == 'local':
-            return glob.glob(self.path+'%s/*%s.gpx' % (athlete, activity_type))
+            return glob.glob(self.path+'gpx/%s/*%s.gpx' % (athlete, activity_type))
 
         # Check if combination exists by using previously compiled sets
         elif self.data_source == 's3':
@@ -153,7 +153,7 @@ class StravaLoader(object):
                     dfadd = self.hiveContext.read.format('com.databricks.spark.xml') \
                                     .options(rowTag='trkpt', treatEmptyValuesAsNulls=False) \
                                     .schema(self.schema) \
-                                    .load(self.path+'%s/*%s.gpx' % (athlete, activity_type))
+                                    .load(self.path+'gpx/%s/*%s.gpx' % (athlete, activity_type))
                 
                     dfadd = dfadd.withColumn('athlete', lit(athlete)) \
                                  .withColumn('activity_type', lit(activity_type))
@@ -173,7 +173,7 @@ class StravaLoader(object):
 
         df = self.hiveContext.read.format('com.databricks.spark.xml') \
                     .options(rowTag='trkpt') \
-                    .load(self.path+'*')
+                    .load(self.path+'gpx/*')
 
         df = df.withColumn('athlete',lit(None).cast(StringType())) \
                .withColumn('activity_type',lit(None).cast(StringType()))
