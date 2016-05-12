@@ -1,5 +1,5 @@
 # strava-spark
-Learning `pyspark` and AWS through analyzing my Strava history with Apache Spark
+Learning `pyspark` and AWS through analyzing my Strava history with Apache Spark 1.6.1
 
 ### What's in here?
 * Bootstrap actions and configuration files that install `ipython notebook` with `pyspark` and `pandas` on AWS EMR 
