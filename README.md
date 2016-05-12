@@ -37,7 +37,7 @@ Activities are stored in the following structure
   * ...
 
 #### Using `StravaLoader`
-In a `pyspark` program like `analysis.py`:
+In a `pyspark` program:
 ```
 from classes import StravaLoader
 df = StravaLoader().get_dataset()
