@@ -1,32 +1,42 @@
-> Work in progress! 
-
-> The instructions in this readme are incomplete.
-
 # strava-spark
-Analyzing my Strava history with Spark
+Learning `pyspark` and AWS through analyzing my Strava history with Apache Spark
 
-## Prerequisites
-* Apache Spark
-* Strava activities stored locally or in an s3 bucket
-* Other bits and pieces (_TODO_)
+### What's in here?
+* Bootstrap actions and configuration files that install `ipython notebook` with `pyspark` and `pandas` on AWS EMR 
+* A `StravaLoader` class that creates a DataFrame from all my Strava activities stored in s3 (or locally)
+* An iPython Notebook that..
+ * Computes moving speed 
+ * Filters tracking points at rest
+ * Identifies "activity blocks" by looking for pauses longer than 10 minutes between tracking points
+ * Flattens the dataset and saves *tracking point dataset* as parquet
+ * Aggregates data to activity block level and computes metrics like average speed, average heart rate and saves *activity block dataset* as parquet
+* A Zeppelin Notebook for data exploration and visualization of the two data sets
 
+### A few examples
+#### Data exploration with Zeppelin
+See the notebook for details. The following illustrations are for road cycling activities.
+
+#####Average heart rate (y) at different speeds in km/h (x) for three different athletes
+![It's tough going up hill](https://raw.githubusercontent.com/larsbkrogvig/strava-spark/master/img/speed_vs_mean_hr.png)
+
+Looks like the toughest part of cycling is going up hill (lower speeds).
+
+#####Average speed in km/h (y) versus total length in km (x) of activities for three athletes
+![akrogvig is a commuter and generally goes faster](https://raw.githubusercontent.com/larsbkrogvig/strava-spark/master/img/length_vs_avg_speed.png)
+
+Looks like different athletes have different cycling habits.
+
+### Some documentation
+#### Storing activities
 Activities are stored in the following structure
-* _strava-activities_
-  * _athlete1_
-    * <_.gpx-files_>
-  * _athlete2_
-    * <_.gpx-files_>
+* strava-activities
+  * athlete1
+    * [id]-[activity type].gpx
+  * athlete2
+    * [id]-[activity type].gpx
   * ...
 
-The _.gpx_ files follow this naming convention:
-> [id]-[activity type].gpx
-
-Typical _activity types_ are:
-* Ride
-* Run
-* NordicSki
-
-### Loading the dataset
+#### Using `StravaLoader`
 In a `pyspark` program like `analysis.py`:
 ```
 from classes import StravaLoader
