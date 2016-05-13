@@ -16,7 +16,7 @@ Learning `pyspark` and AWS through analyzing my Strava history with Apache Spark
 #### Data exploration with Zeppelin
 See the notebook for details. The following illustrations are for road cycling activities.
 
-#####Average heart rate (y) at different speeds in km/h (x) for three different athletes
+#####Average heart rate (y) at different speeds in km/h (x) for three different athletes (not only me)
 ![It's tough going up hill](https://raw.githubusercontent.com/larsbkrogvig/strava-spark/master/img/speed_vs_mean_hr.png)
 
 Looks like the toughest part of cycling is going up hill (lower speeds).
